@@ -68,7 +68,7 @@ elif [[ "${1}" == "addcommit" ]]; then
       echo "$line" >> "${folder}/history"
     done
   fi
-  yay -Qe > "$folder/qm"
+  yay -Qe > "$folder/packages-Qe"
   git -C "$folder" add "$folder"
   git -C "$folder" commit --allow-empty
   rm "${folder}/history"
