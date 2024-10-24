@@ -1,0 +1,79 @@
+#!/bin/bash
+set -e
+
+## SYSTORY
+
+folder="/home/${USER}/system/history"
+
+if [[ "${1}" == "go" ]]; then
+  pushd "${folder}"
+elif [[ "${1}" == "init" ]]; then
+  if [[ -d "${folder}" ]]; then
+    echo "${folder} already exists"
+    exit 1
+  fi
+  mkdir -p "$folder"
+  git -C "$folder" init
+  git -C "$folder" branch -m main
+  git -C "$folder" config commit.template history
+  echo "history" >> "${folder}/.gitignore"
+  echo "diff/*" >> "${folder}/.gitignore"
+  git -C "$folder" add .gitignore
+  git -C "$folder" commit -am "Add .gitignore"
+elif ! [[ -d "${folder}" ]]; then
+  echo "Likely need to run --init" 1>&2
+  exit 1
+elif [[ "${1}" == "sync" ]] or [[ "${1}" == "delete" ]]; then
+  shift
+  for file in "$@"
+  do
+      echo $file
+      r=false
+      if [[ -f "${file}" ]]; then
+        echo is file
+        directory="$(dirname ${file})"
+      elif [[ -d "${file}" ]]; then
+        echo is directory
+        directory="${file}"
+        r=true
+      fi
+      directory="$(realpath "${directory}")"
+      echo directory: $directory
+      echo making: "${folder}${directory}"
+      if [[ "${1}" == "sync" ]]; then
+        mkdir -p "${folder}${directory}"
+        if [[ "${r}" == true ]]; then
+          cp -r "$directory" "${folder}${directory}"
+        else
+          cp "$file" "${folder}${directory}"
+        fi
+      else
+        if [[ "${r}" == true ]]; then
+          rm -r "$directory" || echo "Remove manualy: ${directory} and ${folder}${directory}"
+          rm -r "${folder}${directory}" || echo "Remove manualy: ${folder}${directory}"
+        else
+          rm "$file" || "Remove manualy: ${file} and ${folder}${directory}${file}"
+          rm "${folder}${directory}${file}" || "Remove manualy: ${folder}${directory}${file}"
+        fi
+      fi
+  done
+elif [[ "${1}" == "addcommit" ]]; then
+  shift
+  rm -f "${folder}/history"
+  touch "${folder}/history"
+  if [[ ! -t 0 ]]; then
+    echo -en "${@}\n\n" > "${folder}/history"
+    while read line # check to see if there is ANY stdinput
+    do
+      echo "$line" >> "${folder}/history"
+    done
+  fi
+  yay -Qe > "$folder/qm"
+  git -C "$folder" add "$folder"
+  git -C "$folder" commit --allow-empty
+  rm "${folder}/history"
+else
+  git -C "$folder" $@
+fi
+
+# handle any
